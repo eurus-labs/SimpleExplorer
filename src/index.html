@@ -5,7 +5,13 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>SimpleExplorer</title>
   <link rel="icon" href="data:," />
-  <link rel="stylesheet" href="./styles.css" />
+  <!-- Core first (variables defaulted, shared engine + overlays), then
+       direction-specific palettes + chrome. Load order matters: the
+       fluent / cmd files redefine CSS variables and rely on core's
+       row engine + modal primitives already being in scope. -->
+  <link rel="stylesheet" href="./styles-core.css" />
+  <link rel="stylesheet" href="./styles-fluent.css" />
+  <link rel="stylesheet" href="./styles-cmd.css" />
 </head>
 <body>
   <div id="root"></div>

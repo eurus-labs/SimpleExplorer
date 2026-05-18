@@ -1,9 +1,11 @@
 /*
- * SimpleExplorer styles
+ * SimpleExplorer — core styles
  *
- * Two direction skins (a-, b-) toggled by [data-direction] on <html>.
- * Light/dark per direction via [data-theme] on <html>. Color palettes mirror
- * the design bundle (explorer-fluent.jsx, explorer-cmd.jsx).
+ * Shared across both directions (Fluent, Cmd). Holds globals, the row
+ * engine, overlays (context menu, palette internals, popovers, preview
+ * pane, transfer strip, modals), and the handful of rules that name
+ * `.a-*` and `.b-*` selectors together. Direction-specific chrome
+ * lives in styles-fluent.css / styles-cmd.css.
  */
 
 * { box-sizing: border-box; }
@@ -148,82 +150,9 @@ kbd {
 }
 .iconbtn:hover { background: var(--hover); }
 .iconbtn--sm { width: 24px; height: 24px; color: var(--text-mute); border-radius: 6px; }
+.iconbtn.on { background: var(--accent-bg); color: var(--accent); }
 
-/*
- * ============================================================
- *  Direction A — Fluent Refined
- *  Mica chrome, Win11 colors. Source: explorer-fluent.jsx:8-24
- * ============================================================
- */
-[data-direction="fluent"][data-theme="light"] {
-  --bg:        #f3f3f3;
-  --chrome:    rgba(243,243,243,.85);
-  --surface:   #ffffff;
-  --surface2:  #fafafa;
-  --border:    #e5e5e5;
-  --border-soft: #ebebeb;
-  --text:      #1a1a1a;
-  --text-mute: #5a5a5a;
-  --text-dim:  #8a8a8a;
-  --accent:    #0067c0;
-  --accent-bg: rgba(0,103,192,.10);
-  --hover:     rgba(0,0,0,.04);
-  --sidebar:   #f9f9f9;
-  --sidebar-hi: rgba(0,103,192,.10);
-}
-[data-direction="fluent"][data-theme="dark"] {
-  --bg:        #202020;
-  --chrome:    rgba(32,32,32,.85);
-  --surface:   #2b2b2b;
-  --surface2:  #262626;
-  --border:    #3a3a3a;
-  --border-soft: #2f2f2f;
-  --text:      #f5f5f5;
-  --text-mute: #a8a8a8;
-  --text-dim:  #7a7a7a;
-  --accent:    #4cc2ff;
-  --accent-bg: rgba(76,194,255,.18);
-  --hover:     rgba(255,255,255,.05);
-  --sidebar:   #1a1a1a;
-  --sidebar-hi: rgba(76,194,255,.22);
-}
-
-.a-app {
-  display: flex; flex-direction: column;
-  width: 100%; height: 100%;
-  background: var(--bg); color: var(--text);
-}
-.a-titlebar {
-  display: flex; align-items: center; gap: 8px;
-  height: 36px; padding: 0 0 0 12px;
-  background: var(--chrome); border-bottom: 1px solid var(--border);
-  backdrop-filter: blur(20px);
-}
-.a-brand { display: flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 600; color: var(--text-mute); }
-.a-brand__logo { width: 14px; height: 14px; background: linear-gradient(135deg, #0067c0, #33b1ff); border-radius: 3px; }
-.a-wincontrols { display: flex; }
-.a-winctl {
-  width: 36px; height: 28px; display: inline-flex; align-items: center; justify-content: center;
-  font-size: 10px; color: var(--text-mute); cursor: pointer;
-}
-.a-winctl:hover { background: var(--hover); }
-.a-winctl--close:hover { background: #c42b1c; color: #fff; }
-.a-winctl--disabled { opacity: 0.35; cursor: not-allowed; }
-.a-winctl--disabled:hover { background: transparent; }
-
-.a-cmdbar {
-  display: flex; align-items: center; gap: 4px;
-  padding: 6px 10px; background: var(--bg);
-  border-bottom: 1px solid var(--border-soft);
-}
-.a-sep { width: 1px; height: 18px; background: var(--border); margin: 0 4px; }
-.cmdbtn {
-  display: inline-flex; align-items: center; gap: 6px;
-  height: 28px; padding: 0 10px;
-  background: transparent; border: none; border-radius: 4px; cursor: pointer;
-  color: var(--text); font-size: 12px;
-}
-.cmdbtn:hover { background: var(--hover); }
+/* ── Cross-direction layout / view / preview hooks ───────────────── */
 .a-layout, .b-layout, .c-layout {
   display: inline-flex; align-items: center; gap: 2px;
   background: var(--surface); border: 1px solid var(--border); border-radius: 4px; padding: 2px;
@@ -235,73 +164,86 @@ kbd {
 .a-layout button.on { background: var(--accent-bg); color: var(--accent); }
 .b-layout button.on { background: var(--accent-bg); color: var(--accent); }
 .c-layout button.on { background: var(--text); color: var(--bg); }
-/* Palette input lives in the middle of the command bar — same shape as
-   Cmd's .b-cmdpalette so the two directions feel related. flex:1 +
-   max-width centers it visually between the cmdbtn group on the left
-   and the view/layout pickers on the right. */
-.a-palette {
-  flex: 1; max-width: 560px; margin: 0 12px;
-  display: inline-flex; align-items: center; gap: 10px;
-  height: 30px; padding: 0 12px;
-  background: var(--surface); border: 1px solid var(--border); border-radius: 8px;
+
+/* Fluent / Cmd View chooser — same shape as the layout picker. */
+.a-view, .b-view {
+  display: inline-flex; align-items: center; gap: 2px;
+  padding: 2px; background: var(--surface2); border: 1px solid var(--border-soft);
+  border-radius: 5px;
+}
+.a-view button, .b-view button {
+  height: 22px; width: 26px; display: inline-flex; align-items: center; justify-content: center;
+  background: transparent; border: none; border-radius: 4px; cursor: pointer;
   color: var(--text-mute);
 }
-.a-palette input {
-  flex: 1; border: none; background: transparent; outline: none;
-  font-size: 13px; color: var(--text);
-}
-.a-palette input::placeholder { color: var(--text-mute); }
+.a-view button.on, .b-view button.on { background: var(--accent-bg); color: var(--accent); }
 
-.a-body { flex: 1; display: flex; min-height: 0; }
-.a-sidebar {
-  width: 220px; background: var(--sidebar);
-  border-right: 1px solid var(--border);
-  padding: 8px 0; font-size: 12px;
-  display: flex; flex-direction: column;
-  overflow: hidden; min-height: 0;
-}
-.a-sidebar__body {
-  flex: 1; min-height: 0;
-  overflow: auto;
-}
-.a-sidebar__block { margin-bottom: 10px; }
-.a-sidebar__title {
-  padding: 6px 16px 4px; color: var(--text-dim); font-size: 11px;
-  text-transform: uppercase; letter-spacing: .5px; font-weight: 600;
-}
-.a-sidebar__item {
-  display: flex; align-items: center; gap: 10px;
-  padding: 5px 16px; cursor: pointer;
-  border-left: 3px solid transparent;
-  color: var(--text);
-}
-.a-sidebar__item:hover { background: var(--hover); }
-.a-sidebar__item span { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.a-sidebar__item small { font-size: 10px; color: var(--text-dim); }
-.a-sidebar__item .icn { color: var(--text-mute); }
+/* Suppress the default focus ring on pane cards -- we already paint
+   our own active-pane border, and tabindex=-1 cards take focus
+   programmatically only. */
+.a-pane:focus, .b-pane:focus { outline: none; }
 
-/* Sidebar mode tabs (Phase 7f) — switches the sidebar body between
-   the curated quick-access list and the folder tree. */
-.a-sidebar__tabs {
-  display: flex; gap: 2px; padding: 6px 8px 4px;
-  border-bottom: 1px solid var(--border-soft); margin-bottom: 6px;
+/* Stretch the preview pane alongside the existing grid + sidebar regions. */
+.a-body, .b-body { align-items: stretch; }
+
+/* ── Frameless chrome (Phase 7a) ─────────────────────────────────── */
+/* The Neutralino window is `borderless: true`; we own the entire chrome.
+   On Win11 22H2+ ([data-mica="on"]) we render a translucent backdrop that
+   gives a Mica-like feel even though Neutralino can't enable real Mica
+   without native HWND access. On older builds we fall back to a flat
+   acrylic blur.
+
+   The 1px outline keeps the frameless window legible against the
+   desktop wallpaper. We use `outline` instead of `border` so the
+   border thickness doesn't subtract from the inner width/height --
+   a 1px border on a 100% box pushes content over by 1px and was
+   clipping scrollbars at the right edge of panes. */
+.a-app, .b-app {
+  outline: 1px solid var(--border);
+  outline-offset: -1px;
 }
-.a-sidebar__tab {
-  flex: 1; height: 24px; padding: 0 8px;
-  background: transparent; border: 1px solid transparent; border-radius: 5px;
-  color: var(--text-mute); font-size: 11.5px; cursor: pointer;
+/* Borderless-maximized overscan compensation: when Windows maximizes
+   a borderless window it still applies its WS_THICKFRAME (~8 px on
+   each edge), so the outermost pixels of our content are rendered
+   off-screen. Insetting the app by 8 px when maximized pulls the
+   chrome / panes / status bar back inside the visible area. */
+[data-maximized="1"] body { padding: 8px; }
+[data-maximized="1"] .a-app,
+[data-maximized="1"] .b-app {
+  outline: none;
 }
-.a-sidebar__tab:hover { background: var(--hover); }
-.a-sidebar__tab--on {
-  background: var(--accent-bg); color: var(--accent); font-weight: 600;
-  border-color: color-mix(in srgb, var(--accent) 30%, transparent);
+[data-mica="on"] .a-titlebar,
+[data-mica="on"] .b-topbar {
+  background: color-mix(in srgb, var(--chrome) 70%, transparent);
+  backdrop-filter: blur(40px) saturate(150%);
+  -webkit-backdrop-filter: blur(40px) saturate(150%);
+}
+[data-mica="fallback"] .a-titlebar,
+[data-mica="fallback"] .b-topbar {
+  background: var(--chrome);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+}
+/* Drag-region children that should never trigger window drag. The visual
+   feedback stays as-is; setDraggableRegion checks pointer target tag and
+   skips BUTTON/INPUT, but explicit cursor hints help. */
+[data-drag-region] {
+  -webkit-app-region: drag; /* harmless on WebView2; matches Electron idiom */
+  cursor: default;
+}
+[data-drag-region] button,
+[data-drag-region] input,
+[data-drag-region] kbd,
+[data-drag-region] .dir-switch,
+[data-drag-region] .a-winctl,
+[data-drag-region] .b-winctl,
+[data-drag-region] [data-layout],
+[data-drag-region] [data-view],
+[data-drag-region] [data-act] {
+  -webkit-app-region: no-drag;
 }
 
-.a-sidebar__tree {
-  padding: 4px 0;
-  flex: 1; min-height: 0;
-  overflow: auto;
-}
+/* ── Tree view (Phase 7f, virtualized in 8a) ─────────────────────── */
 .tree-scroll { position: relative; }
 .tree-inner { position: relative; }
 .tree__row {
@@ -326,208 +268,6 @@ kbd {
   display: flex; align-items: center;
   font-style: italic;
 }
-
-.a-grid {
-  flex: 1; display: grid; padding: 6px;
-  background: var(--bg); min-height: 0;
-}
-.a-pane {
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: 6px; overflow: hidden;
-  display: flex; flex-direction: column;
-  min-height: 0;
-}
-.a-pane--active {
-  border-color: var(--accent);
-  box-shadow: 0 0 0 1px var(--accent);
-}
-/* Suppress the default focus ring on pane cards -- we already paint
-   our own active-pane border above, and tabindex=-1 cards take focus
-   programmatically only. */
-.a-pane:focus, .b-pane:focus { outline: none; }
-.a-tabs {
-  display: flex; align-items: center;
-  background: var(--surface2); border-bottom: 1px solid var(--border-soft); height: 30px;
-  padding: 0 4px;
-}
-.a-tab {
-  display: flex; align-items: center; gap: 8px;
-  height: 26px; padding: 0 10px; border-radius: 4px;
-  font-size: 12px; cursor: pointer;
-}
-.a-tab--active {
-  background: var(--surface);
-  border: 1px solid var(--border-soft);
-}
-.a-tab .icn { color: var(--text-mute); }
-.a-tab__label {
-  max-width: 160px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
-}
-.a-tab__close {
-  display: inline-flex; align-items: center; justify-content: center;
-  width: 16px; height: 16px; border-radius: 3px;
-  color: var(--text-mute); opacity: 0.6;
-}
-.a-tab__close:hover { background: var(--border-soft); opacity: 1; }
-.a-tab__plus {
-  width: 22px; height: 22px; display: inline-flex; align-items: center; justify-content: center;
-  background: transparent; border: none; border-radius: 4px; cursor: pointer;
-  color: var(--text-mute);
-}
-.a-tab__plus:hover { background: var(--border-soft); }
-.a-crumbbar {
-  display: flex; align-items: center; gap: 6px;
-  height: 30px; padding: 0 10px;
-  background: var(--surface); border-bottom: 1px solid var(--border-soft);
-}
-.a-statusbar {
-  display: flex; align-items: center; gap: 16px;
-  height: 24px; padding: 0 12px;
-  background: var(--surface2); border-top: 1px solid var(--border-soft);
-  font-size: 11px; color: var(--text-mute);
-}
-
-/*
- * ============================================================
- *  Direction B — Command-bar first
- *  Source: explorer-cmd.jsx:9-22
- * ============================================================
- */
-[data-direction="cmd"][data-theme="light"] {
-  --bg:        #fbfbfa;
-  --chrome:    #fbfbfa;
-  --surface:   #ffffff;
-  --surface2:  #f5f5f3;
-  --border:    #ececea;
-  --border-soft: #f0f0ee;
-  --text:      #1a1a18;
-  --text-mute: #6a6a66;
-  --text-dim:  #aaaaa4;
-  --accent:    #7c3aed;
-  --accent-bg: rgba(124,58,237,.08);
-  --hover:     rgba(0,0,0,.035);
-}
-[data-direction="cmd"][data-theme="dark"] {
-  --bg:        #0e0e10;
-  --chrome:    #0e0e10;
-  --surface:   #16161a;
-  --surface2:  #121215;
-  --border:    #26262c;
-  --border-soft: #1d1d22;
-  --text:      #e8e8e6;
-  --text-mute: #9a9a96;
-  --text-dim:  #5a5a56;
-  --accent:    #a78bfa;
-  --accent-bg: rgba(167,139,250,.14);
-  --hover:     rgba(255,255,255,.04);
-}
-
-[data-direction="cmd"] body { font-family: "Inter", "SF Pro Text", system-ui, sans-serif; letter-spacing: -0.01em; }
-.b-app { display: flex; flex-direction: column; width: 100%; height: 100%; background: var(--bg); color: var(--text); }
-.b-topbar {
-  display: flex; align-items: center; gap: 12px;
-  height: 44px; padding: 0 12px;
-  border-bottom: 1px solid var(--border); background: var(--chrome);
-}
-.b-brand { display: flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 600; color: var(--text); }
-.b-brand__logo { width: 14px; height: 14px; background: linear-gradient(135deg, #7c3aed, #a78bfa); border-radius: 3px; }
-.b-sep { width: 1px; height: 18px; background: var(--border); }
-.b-cmdpalette {
-  flex: 1; max-width: 560px;
-  display: flex; align-items: center; gap: 10px;
-  height: 30px; padding: 0 12px;
-  background: var(--surface); border: 1px solid var(--border); border-radius: 8px;
-}
-.b-cmdpalette input {
-  flex: 1; border: none; background: transparent; outline: none; color: var(--text);
-}
-.b-cmdpalette input::placeholder { color: var(--text-mute); }
-
-.b-body { flex: 1; display: flex; min-height: 0; background: var(--bg); }
-.b-rail {
-  width: 64px; padding: 10px 4px;
-  border-right: 1px solid var(--border); background: var(--bg);
-  display: flex; flex-direction: column; align-items: stretch; gap: 2px;
-}
-.b-rail__btn {
-  display: flex; flex-direction: column; align-items: center; gap: 4px;
-  padding: 8px 4px; border: none; border-radius: 8px; cursor: pointer;
-  background: transparent; color: var(--text-mute);
-}
-.b-rail__btn:hover { background: var(--hover); color: var(--text); }
-.b-rail__btn--active { background: var(--accent-bg); color: var(--accent); }
-.b-rail__btn--active .b-rail__label { font-weight: 600; }
-.b-rail__label {
-  font-size: 10.5px; font-weight: 500; letter-spacing: .1px;
-}
-
-/* Detail panel rendered to the right of the rail when an item is open. */
-.b-rail-panel {
-  width: 200px; padding: 12px 0;
-  background: var(--surface2); border-right: 1px solid var(--border);
-  overflow: auto;
-  display: flex; flex-direction: column;
-}
-.b-rail-panel__title {
-  padding: 0 14px 8px;
-  font-size: 10.5px; font-weight: 700; letter-spacing: .6px;
-  color: var(--text-dim); text-transform: uppercase;
-}
-.b-rail-panel__entry {
-  display: flex; align-items: center; gap: 10px;
-  padding: 7px 12px; margin: 0 6px; border-radius: 6px;
-  font-size: 12px; cursor: pointer;
-}
-.b-rail-panel__entry:hover { background: var(--hover); }
-.b-rail-panel__entry .icn { color: var(--text-mute); flex-shrink: 0; }
-.b-rail-panel__text { flex: 1; min-width: 0; }
-.b-rail-panel__label {
-  color: var(--text);
-  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
-}
-.b-rail-panel__meta {
-  font-size: 10.5px; color: var(--text-dim);
-  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
-}
-.b-rail-panel__empty {
-  padding: 16px 14px; color: var(--text-dim); font-size: 12px; text-align: center;
-}
-
-.b-grid { flex: 1; display: grid; padding: 8px; min-height: 0; }
-
-.b-pane {
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: 10px; overflow: hidden;
-  display: flex; flex-direction: column; min-height: 0;
-}
-.b-pane--active {
-  border-color: var(--accent);
-  box-shadow: 0 0 0 1px var(--accent), 0 4px 16px rgba(0,0,0,.06);
-}
-.b-pane__head {
-  display: flex; align-items: center; gap: 8px;
-  padding: 10px 12px; border-bottom: 1px solid var(--border-soft);
-}
-.b-chip {
-  display: inline-flex; align-items: center; gap: 6px;
-  height: 26px; padding: 0 10px 0 8px;
-  background: var(--surface2); border: 1px solid var(--border); border-radius: 13px;
-  font-size: 12px; color: var(--text);
-}
-.b-chip__segs { display: inline-flex; align-items: center; }
-.b-chip__pre { color: var(--text-mute); }
-.b-chip__last { font-weight: 600; }
-.b-chip__seg { cursor: pointer; padding: 0 1px; border-radius: 2px; }
-.b-chip__seg:hover { color: var(--text); background: var(--border-soft); }
-.b-pane__foot {
-  height: 26px; padding: 0 12px;
-  display: flex; align-items: center; gap: 12px;
-  border-top: 1px solid var(--border-soft);
-  font-size: 11px; color: var(--text-dim);
-}
-.b-pane__foot span { color: var(--text-dim); }
 
 /* ── Right-click context menu (shared across all directions) ─────────── */
 .ctx-menu {
@@ -569,6 +309,7 @@ kbd {
 .ctx-menu__item--loading:hover { background: transparent; }
 .ctx-menu__arrow { color: var(--text-dim); font-size: 14px; line-height: 1; }
 
+/* ── Splitter (resizable panes) ─────────────────────────────────── */
 .splitter {
   align-self: stretch; justify-self: stretch;
   background: transparent;
@@ -584,7 +325,7 @@ body.is-resizing-row, body.is-resizing-row * { cursor: row-resize !important; us
    rows :hover would otherwise fight the resize reflow on every move. */
 body.is-resizing-col .row, body.is-resizing-row .row { pointer-events: none; }
 
-/* ── Cmd Ctrl+K palette ─────────────────────────────────────────── */
+/* ── Palette internals (Cmd Ctrl+K) ─────────────────────────────── */
 .palette {
   position: fixed; z-index: 50;
   background: var(--surface); border: 1px solid var(--border); border-radius: 8px;
@@ -666,19 +407,6 @@ body.is-resizing-col .row, body.is-resizing-row .row { pointer-events: none; }
 .rows--tiles .row__mod,
 .rows--tiles .row__kind { display: none; }
 
-/* Fluent View chooser — same shape as the layout picker. */
-.a-view, .b-view {
-  display: inline-flex; align-items: center; gap: 2px;
-  padding: 2px; background: var(--surface2); border: 1px solid var(--border-soft);
-  border-radius: 5px;
-}
-.a-view button, .b-view button {
-  height: 22px; width: 26px; display: inline-flex; align-items: center; justify-content: center;
-  background: transparent; border: none; border-radius: 4px; cursor: pointer;
-  color: var(--text-mute);
-}
-.a-view button.on, .b-view button.on { background: var(--accent-bg); color: var(--accent); }
-
 /* Generic popover (Cmd Sort + View). Positioned fixed by openPopover(). */
 .popover {
   z-index: 60;
@@ -698,75 +426,6 @@ body.is-resizing-col .row, body.is-resizing-row .row { pointer-events: none; }
 .popover__item--active { background: var(--accent-bg); color: var(--accent); }
 .popover__hint { color: var(--text-dim); font-size: 11px; }
 .popover__item--active .popover__hint { color: var(--accent); }
-
-/* ── Frameless chrome (Phase 7a) ─────────────────────────────────── */
-/* The Neutralino window is `borderless: true`; we own the entire chrome.
-   On Win11 22H2+ ([data-mica="on"]) we render a translucent backdrop that
-   gives a Mica-like feel even though Neutralino can't enable real Mica
-   without native HWND access. On older builds we fall back to a flat
-   acrylic blur.
-
-   The 1px outline keeps the frameless window legible against the
-   desktop wallpaper. We use `outline` instead of `border` so the
-   border thickness doesn't subtract from the inner width/height --
-   a 1px border on a 100% box pushes content over by 1px and was
-   clipping scrollbars at the right edge of panes. */
-.a-app, .b-app {
-  outline: 1px solid var(--border);
-  outline-offset: -1px;
-}
-/* Borderless-maximized overscan compensation: when Windows maximizes
-   a borderless window it still applies its WS_THICKFRAME (~8 px on
-   each edge), so the outermost pixels of our content are rendered
-   off-screen. Insetting the app by 8 px when maximized pulls the
-   chrome / panes / status bar back inside the visible area, fixing
-   the missing right-pane scrollbar and the clipped status-bar row. */
-[data-maximized="1"] body { padding: 8px; }
-[data-maximized="1"] .a-app,
-[data-maximized="1"] .b-app {
-  outline: none;
-}
-[data-mica="on"] .a-titlebar,
-[data-mica="on"] .b-topbar {
-  background: color-mix(in srgb, var(--chrome) 70%, transparent);
-  backdrop-filter: blur(40px) saturate(150%);
-  -webkit-backdrop-filter: blur(40px) saturate(150%);
-}
-[data-mica="fallback"] .a-titlebar,
-[data-mica="fallback"] .b-topbar {
-  background: var(--chrome);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
-}
-/* Drag-region children that should never trigger window drag. The visual
-   feedback stays as-is; setDraggableRegion checks pointer target tag and
-   skips BUTTON/INPUT, but explicit cursor hints help. */
-[data-drag-region] {
-  -webkit-app-region: drag; /* harmless on WebView2; matches Electron idiom */
-  cursor: default;
-}
-[data-drag-region] button,
-[data-drag-region] input,
-[data-drag-region] kbd,
-[data-drag-region] .dir-switch,
-[data-drag-region] .a-winctl,
-[data-drag-region] .b-winctl,
-[data-drag-region] [data-layout],
-[data-drag-region] [data-view],
-[data-drag-region] [data-act] {
-  -webkit-app-region: no-drag;
-}
-
-/* Cmd window controls — same dimensions as Fluent's so muscle memory
-   carries between directions. */
-.b-wincontrols { display: flex; margin-left: 6px; }
-.b-winctl {
-  width: 36px; height: 28px; display: inline-flex; align-items: center; justify-content: center;
-  font-size: 10px; color: var(--text-mute); cursor: pointer;
-  border-radius: 4px;
-}
-.b-winctl:hover { background: var(--hover); }
-.b-winctl--close:hover { background: #c42b1c; color: #fff; }
 
 /* ── Recursive search (Phase 7b) ─────────────────────────────────── */
 .search-banner {
@@ -880,11 +539,6 @@ body.is-resizing-col .row, body.is-resizing-row .row { pointer-events: none; }
 .preview__md a { color: var(--accent); text-decoration: none; }
 .preview__md a:hover { text-decoration: underline; }
 .preview__md strong { font-weight: 600; }
-
-/* Make the body row in both directions stretch the preview pane,
-   keeping the existing grid + sidebar regions sized as before. */
-.a-body, .b-body { align-items: stretch; }
-.iconbtn.on { background: var(--accent-bg); color: var(--accent); }
 
 /* Phase 8c — transfer progress strip + conflict modal. The strip is
    pinned to the bottom of the viewport on document.body so the full

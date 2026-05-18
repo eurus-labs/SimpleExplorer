@@ -1,0 +1,204 @@
+/*
+ * SimpleExplorer — Direction A (Fluent Refined)
+ *
+ * Mica chrome, Win11 colors. Source: explorer-fluent.jsx:8-24.
+ * Only pure `.a-*` selectors + `[data-direction="fluent"]` variable
+ * blocks. Cross-direction rules (.a-layout/.b-layout/.c-layout,
+ * .a-view/.b-view, .a-body/.b-body, .a-app/.b-app, drag region,
+ * Mica fallback) live in styles-core.css.
+ */
+
+[data-direction="fluent"][data-theme="light"] {
+  --bg:        #f3f3f3;
+  --chrome:    rgba(243,243,243,.85);
+  --surface:   #ffffff;
+  --surface2:  #fafafa;
+  --border:    #e5e5e5;
+  --border-soft: #ebebeb;
+  --text:      #1a1a1a;
+  --text-mute: #5a5a5a;
+  --text-dim:  #8a8a8a;
+  --accent:    #0067c0;
+  --accent-bg: rgba(0,103,192,.10);
+  --hover:     rgba(0,0,0,.04);
+  --sidebar:   #f9f9f9;
+  --sidebar-hi: rgba(0,103,192,.10);
+}
+[data-direction="fluent"][data-theme="dark"] {
+  --bg:        #202020;
+  --chrome:    rgba(32,32,32,.85);
+  --surface:   #2b2b2b;
+  --surface2:  #262626;
+  --border:    #3a3a3a;
+  --border-soft: #2f2f2f;
+  --text:      #f5f5f5;
+  --text-mute: #a8a8a8;
+  --text-dim:  #7a7a7a;
+  --accent:    #4cc2ff;
+  --accent-bg: rgba(76,194,255,.18);
+  --hover:     rgba(255,255,255,.05);
+  --sidebar:   #1a1a1a;
+  --sidebar-hi: rgba(76,194,255,.22);
+}
+
+.a-app {
+  display: flex; flex-direction: column;
+  width: 100%; height: 100%;
+  background: var(--bg); color: var(--text);
+}
+.a-titlebar {
+  display: flex; align-items: center; gap: 8px;
+  height: 36px; padding: 0 0 0 12px;
+  background: var(--chrome); border-bottom: 1px solid var(--border);
+  backdrop-filter: blur(20px);
+}
+.a-brand { display: flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 600; color: var(--text-mute); }
+.a-brand__logo { width: 14px; height: 14px; background: linear-gradient(135deg, #0067c0, #33b1ff); border-radius: 3px; }
+.a-wincontrols { display: flex; }
+.a-winctl {
+  width: 36px; height: 28px; display: inline-flex; align-items: center; justify-content: center;
+  font-size: 10px; color: var(--text-mute); cursor: pointer;
+}
+.a-winctl:hover { background: var(--hover); }
+.a-winctl--close:hover { background: #c42b1c; color: #fff; }
+.a-winctl--disabled { opacity: 0.35; cursor: not-allowed; }
+.a-winctl--disabled:hover { background: transparent; }
+
+.a-cmdbar {
+  display: flex; align-items: center; gap: 4px;
+  padding: 6px 10px; background: var(--bg);
+  border-bottom: 1px solid var(--border-soft);
+}
+.a-sep { width: 1px; height: 18px; background: var(--border); margin: 0 4px; }
+.cmdbtn {
+  display: inline-flex; align-items: center; gap: 6px;
+  height: 28px; padding: 0 10px;
+  background: transparent; border: none; border-radius: 4px; cursor: pointer;
+  color: var(--text); font-size: 12px;
+}
+.cmdbtn:hover { background: var(--hover); }
+
+/* Palette input lives in the middle of the command bar — same shape as
+   Cmd's .b-cmdpalette so the two directions feel related. flex:1 +
+   max-width centers it visually between the cmdbtn group on the left
+   and the view/layout pickers on the right. */
+.a-palette {
+  flex: 1; max-width: 560px; margin: 0 12px;
+  display: inline-flex; align-items: center; gap: 10px;
+  height: 30px; padding: 0 12px;
+  background: var(--surface); border: 1px solid var(--border); border-radius: 8px;
+  color: var(--text-mute);
+}
+.a-palette input {
+  flex: 1; border: none; background: transparent; outline: none;
+  font-size: 13px; color: var(--text);
+}
+.a-palette input::placeholder { color: var(--text-mute); }
+
+.a-body { flex: 1; display: flex; min-height: 0; }
+.a-sidebar {
+  width: 220px; background: var(--sidebar);
+  border-right: 1px solid var(--border);
+  padding: 8px 0; font-size: 12px;
+  display: flex; flex-direction: column;
+  overflow: hidden; min-height: 0;
+}
+.a-sidebar__body {
+  flex: 1; min-height: 0;
+  overflow: auto;
+}
+.a-sidebar__block { margin-bottom: 10px; }
+.a-sidebar__title {
+  padding: 6px 16px 4px; color: var(--text-dim); font-size: 11px;
+  text-transform: uppercase; letter-spacing: .5px; font-weight: 600;
+}
+.a-sidebar__item {
+  display: flex; align-items: center; gap: 10px;
+  padding: 5px 16px; cursor: pointer;
+  border-left: 3px solid transparent;
+  color: var(--text);
+}
+.a-sidebar__item:hover { background: var(--hover); }
+.a-sidebar__item span { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.a-sidebar__item small { font-size: 10px; color: var(--text-dim); }
+.a-sidebar__item .icn { color: var(--text-mute); }
+
+/* Sidebar mode tabs (Phase 7f) — switches the sidebar body between
+   the curated quick-access list and the folder tree. */
+.a-sidebar__tabs {
+  display: flex; gap: 2px; padding: 6px 8px 4px;
+  border-bottom: 1px solid var(--border-soft); margin-bottom: 6px;
+}
+.a-sidebar__tab {
+  flex: 1; height: 24px; padding: 0 8px;
+  background: transparent; border: 1px solid transparent; border-radius: 5px;
+  color: var(--text-mute); font-size: 11.5px; cursor: pointer;
+}
+.a-sidebar__tab:hover { background: var(--hover); }
+.a-sidebar__tab--on {
+  background: var(--accent-bg); color: var(--accent); font-weight: 600;
+  border-color: color-mix(in srgb, var(--accent) 30%, transparent);
+}
+
+.a-sidebar__tree {
+  padding: 4px 0;
+  flex: 1; min-height: 0;
+  overflow: auto;
+}
+
+.a-grid {
+  flex: 1; display: grid; padding: 6px;
+  background: var(--bg); min-height: 0;
+}
+.a-pane {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 6px; overflow: hidden;
+  display: flex; flex-direction: column;
+  min-height: 0;
+}
+.a-pane--active {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 1px var(--accent);
+}
+.a-tabs {
+  display: flex; align-items: center;
+  background: var(--surface2); border-bottom: 1px solid var(--border-soft); height: 30px;
+  padding: 0 4px;
+}
+.a-tab {
+  display: flex; align-items: center; gap: 8px;
+  height: 26px; padding: 0 10px; border-radius: 4px;
+  font-size: 12px; cursor: pointer;
+}
+.a-tab--active {
+  background: var(--surface);
+  border: 1px solid var(--border-soft);
+}
+.a-tab .icn { color: var(--text-mute); }
+.a-tab__label {
+  max-width: 160px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.a-tab__close {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 16px; height: 16px; border-radius: 3px;
+  color: var(--text-mute); opacity: 0.6;
+}
+.a-tab__close:hover { background: var(--border-soft); opacity: 1; }
+.a-tab__plus {
+  width: 22px; height: 22px; display: inline-flex; align-items: center; justify-content: center;
+  background: transparent; border: none; border-radius: 4px; cursor: pointer;
+  color: var(--text-mute);
+}
+.a-tab__plus:hover { background: var(--border-soft); }
+.a-crumbbar {
+  display: flex; align-items: center; gap: 6px;
+  height: 30px; padding: 0 10px;
+  background: var(--surface); border-bottom: 1px solid var(--border-soft);
+}
+.a-statusbar {
+  display: flex; align-items: center; gap: 16px;
+  height: 24px; padding: 0 12px;
+  background: var(--surface2); border-top: 1px solid var(--border-soft);
+  font-size: 11px; color: var(--text-mute);
+}

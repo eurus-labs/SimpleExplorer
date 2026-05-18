@@ -1141,5 +1141,3 @@ flags.
   targets: `transfer.uniqueName` via a `pathExists` mock, and
   `tree.js`'s `walk` / `renderWindow` math against a hand-built
   `visibleNodes` fixture.
-- **CSS lives in one 19 KB `styles.css`.** As directions grow this will
-  fight us; consider splitting per-direction once Phase 2 lands.
