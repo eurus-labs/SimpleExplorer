@@ -1116,16 +1116,23 @@ flags.
   vertical. Fix: cap menu height at `viewport - 16 px`, add
   `overflow-y: auto`, and flip the anchor upward when
   `menu.bottom > viewport.height`. Same fix applies to submenus.
-- **Shell-extension load can stall the menu.** `helperMenu` walks
-  `IContextMenu` for every installed extension; a slow / RPC-heavy
-  extension can hold up the whole right-click for seconds. The
-  Phase 1.5 spec called for a 1 s watchdog returning partial
-  results plus an optional per-CLSID skip-list in
-  `neutralino.config.json` — neither is wired today. The helper
-  also doesn't cache per-CLSID timings so repeat slowness can't
-  be predicted away. Tracked separately from the menu-overflow
-  fix because it needs `tools/shellhelp.cpp` changes + a CI
-  helper rebuild.
+- **Shell-extension load still hangs in the C++ helper.** JS now
+  bails after a 1500 ms deadline (`fs.HELPER_MENU_TIMEOUT` —
+  see `fs.helperMenu`) and the menu renders the curated section
+  plus a "Shell extensions timed out" notice, so the UI no longer
+  freezes behind a slow extension. The helper process itself is
+  still in the dark — it runs `QueryContextMenu` as a single COM
+  call that walks every registered extension in series, so one
+  slow extension still costs everyone behind it until the call
+  returns (the JS side just stops waiting for the output).
+  Proper fix: per-CLSID enumeration inside `tools/shellhelp.cpp`
+  — instantiate each `IShellExtInit` on a worker thread, deadline
+  each one at 1 s, stream JSON to stdout as each completes so JS
+  can render extensions progressively. Add an optional skip-list
+  in `neutralino.config.json` honored by the helper for known-bad
+  CLSIDs. ~300 LOC of C++ + CI rebuild; needs a Windows box with
+  several heavy extensions installed for verification, hence not
+  shipped here.
 - **Test coverage is shallow.** `npm test` (node:test) now covers
   `fs.js`'s pure path / format helpers (`normalizePath`,
   `sameDrive`, `joinPath`, `parentPath`, `basename`, `pathSegments`,

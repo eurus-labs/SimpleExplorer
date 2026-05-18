@@ -928,6 +928,17 @@ function buildCurated(menu, entry) {
 // separator silently.
 function fillShellSection(menu, sep, loading, json, paths) {
   loading.remove();
+  // Distinguish "helper deadline blew" from "no extensions installed":
+  // surface the timeout case so the user knows entries are missing and
+  // isn't surprised that 7-Zip / Send to / TortoiseSVN didn't show up.
+  if (json === fs.HELPER_MENU_TIMEOUT) {
+    const note = document.createElement('div');
+    note.className = 'ctx-menu__item ctx-menu__item--loading';
+    note.textContent = 'Shell extensions timed out';
+    note.title = 'A registered shell extension took too long to respond.';
+    menu.appendChild(note);
+    return;
+  }
   if (!json || !json.length) {
     sep.remove();
     return;
