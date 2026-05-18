@@ -96,10 +96,9 @@ the file they're looking at), plus the items in [Open questions
 
 ## Known bugs
 
-- **`extras/shellhelp.exe` not yet compiled.** Right-click → Properties /
-  Delete-to-trash / drive list fall back to PowerShell (~250–400 ms vs
-  ~50 ms native). Build once with MSVC; `scripts/run.ps1` automates from
-  there.
+(none currently tracked — the previous "`extras/shellhelp.exe` not
+yet compiled" entry was retired once the CI `build-shellhelp`
+workflow started committing the artifact back to `extras/`.)
 
 ## MVP audit
 
@@ -1127,13 +1126,6 @@ flags.
   be predicted away. Tracked separately from the menu-overflow
   fix because it needs `tools/shellhelp.cpp` changes + a CI
   helper rebuild.
-- **`extras/shellhelp.exe`** isn't compiled yet. Until you have MSVC
-  installed and run `scripts/run.ps1` once, Properties / Delete /
-  drives stay on the slow PowerShell path.
-- **Vendored Neutralino runtime** in `bin/neutralino-win_x64.exe` is a
-  scratch-branch workaround for the corporate-proxy block on
-  `github.com`. If this branch ever gets cleaned up for `main`, the
-  binary must come out and the proxy issue must be solved upstream.
 - **No tests at all.** CLAUDE.md prescribes `tests/` but JS test
   tooling isn't wired. First test target probably should be `fs.js`'s
   pure helpers (`joinPath`, `parentPath`, `pathSegments`,
