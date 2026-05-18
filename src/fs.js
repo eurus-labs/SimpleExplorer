@@ -5,7 +5,11 @@
 // All higher-level code (app.js, pane.js, directions/*.js) imports from this
 // module only — keeping the Neutralino surface area in one file.
 
-const N = window.Neutralino;
+// `window` is undefined under node:test (tests import the pure path
+// helpers directly). Guarding the lookup keeps the module
+// importable so e.g. tests/fs.path.test.js can exercise normalizePath
+// without spinning up a DOM.
+const N = (typeof window !== 'undefined') ? window.Neutralino : null;
 export const isNative = !!N;
 
 // ── Mock data ───────────────────────────────────────────────────────────────

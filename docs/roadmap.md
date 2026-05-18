@@ -1126,9 +1126,13 @@ flags.
   be predicted away. Tracked separately from the menu-overflow
   fix because it needs `tools/shellhelp.cpp` changes + a CI
   helper rebuild.
-- **No tests at all.** CLAUDE.md prescribes `tests/` but JS test
-  tooling isn't wired. First test target probably should be `fs.js`'s
-  pure helpers (`joinPath`, `parentPath`, `pathSegments`,
-  `formatSize`, `formatModified`).
+- **Test coverage is shallow.** `npm test` (node:test) now covers
+  `fs.js`'s pure path / format helpers (`normalizePath`,
+  `sameDrive`, `joinPath`, `parentPath`, `basename`, `pathSegments`,
+  `parseUriList`, `formatSize`, `formatModified`); everything
+  Neutralino-bound and every UI module is still untested. Next
+  targets: `transfer.uniqueName` via a `pathExists` mock, and
+  `tree.js`'s `walk` / `renderWindow` math against a hand-built
+  `visibleNodes` fixture.
 - **CSS lives in one 19 KB `styles.css`.** As directions grow this will
   fight us; consider splitting per-direction once Phase 2 lands.
