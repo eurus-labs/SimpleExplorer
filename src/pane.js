@@ -1008,8 +1008,14 @@ function bindSubmenuHover(parentRow, submenuEntries, paths) {
 function positionAt(menu, x, y) {
   const w = menu.offsetWidth, h = menu.offsetHeight;
   const vw = window.innerWidth, vh = window.innerHeight;
-  menu.style.left = Math.min(x, vw - w - 4) + 'px';
-  menu.style.top  = Math.min(y, vh - h - 4) + 'px';
+  // Clamp on both axes so neither edge can spill past the viewport.
+  // When the menu is taller than the viewport the CSS max-height
+  // clamps offsetHeight; we still pin top to 8 so the header sits
+  // just below the chrome and the scroll bar reaches both edges.
+  const left = Math.max(4, Math.min(x, vw - w - 4));
+  const top  = Math.max(8, Math.min(y, vh - h - 8));
+  menu.style.left = left + 'px';
+  menu.style.top  = top + 'px';
 }
 
 function positionSubmenu(menu, parentRect) {
@@ -1019,8 +1025,8 @@ function positionSubmenu(menu, parentRect) {
   if (left + w > vw - 4) left = parentRect.left - w + 2;
   if (left < 4) left = 4;
   let top = parentRect.top - 4;
-  if (top + h > vh - 4) top = vh - h - 4;
-  if (top < 4) top = 4;
+  if (top + h > vh - 8) top = vh - h - 8;
+  if (top < 8) top = 8;
   menu.style.left = left + 'px';
   menu.style.top  = top + 'px';
 }

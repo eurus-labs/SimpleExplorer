@@ -533,6 +533,12 @@ kbd {
 .ctx-menu {
   position: fixed; z-index: 9999;
   min-width: 200px; padding: 4px;
+  /* Cap height at viewport minus 16 px so a long shell-extension
+     menu (Bosch File Services / FastSearch / 7-Zip / TortoiseSVN /
+     IntelliJ / …) scrolls inside the menu instead of clipping at
+     the bottom of the window. Same cap applies to submenus. */
+  max-height: calc(100vh - 16px);
+  overflow-y: auto; overflow-x: hidden;
   background: var(--surface); color: var(--text);
   border: 1px solid var(--border); border-radius: 8px;
   box-shadow: 0 8px 32px rgba(0,0,0,.18), 0 1px 2px rgba(0,0,0,.08);
