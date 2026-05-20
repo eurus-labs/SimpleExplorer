@@ -96,10 +96,9 @@ the file they're looking at), plus the items in [Open questions
 
 ## Known bugs
 
-- **`extras/shellhelp.exe` not yet compiled.** Right-click → Properties /
-  Delete-to-trash / drive list fall back to PowerShell (~250–400 ms vs
-  ~50 ms native). Build once with MSVC; `scripts/run.ps1` automates from
-  there.
+(none currently tracked — the previous "`extras/shellhelp.exe` not
+yet compiled" entry was retired once the CI `build-shellhelp`
+workflow started committing the artifact back to `extras/`.)
 
 ## MVP audit
 
@@ -1117,26 +1116,28 @@ flags.
   vertical. Fix: cap menu height at `viewport - 16 px`, add
   `overflow-y: auto`, and flip the anchor upward when
   `menu.bottom > viewport.height`. Same fix applies to submenus.
-- **Shell-extension load can stall the menu.** `helperMenu` walks
-  `IContextMenu` for every installed extension; a slow / RPC-heavy
-  extension can hold up the whole right-click for seconds. The
-  Phase 1.5 spec called for a 1 s watchdog returning partial
-  results plus an optional per-CLSID skip-list in
-  `neutralino.config.json` — neither is wired today. The helper
-  also doesn't cache per-CLSID timings so repeat slowness can't
-  be predicted away. Tracked separately from the menu-overflow
-  fix because it needs `tools/shellhelp.cpp` changes + a CI
-  helper rebuild.
-- **`extras/shellhelp.exe`** isn't compiled yet. Until you have MSVC
-  installed and run `scripts/run.ps1` once, Properties / Delete /
-  drives stay on the slow PowerShell path.
-- **Vendored Neutralino runtime** in `bin/neutralino-win_x64.exe` is a
-  scratch-branch workaround for the corporate-proxy block on
-  `github.com`. If this branch ever gets cleaned up for `main`, the
-  binary must come out and the proxy issue must be solved upstream.
-- **No tests at all.** CLAUDE.md prescribes `tests/` but JS test
-  tooling isn't wired. First test target probably should be `fs.js`'s
-  pure helpers (`joinPath`, `parentPath`, `pathSegments`,
-  `formatSize`, `formatModified`).
-- **CSS lives in one 19 KB `styles.css`.** As directions grow this will
-  fight us; consider splitting per-direction once Phase 2 lands.
+- **Shell-extension load still hangs in the C++ helper.** JS now
+  bails after a 1500 ms deadline (`fs.HELPER_MENU_TIMEOUT` —
+  see `fs.helperMenu`) and the menu renders the curated section
+  plus a "Shell extensions timed out" notice, so the UI no longer
+  freezes behind a slow extension. The helper process itself is
+  still in the dark — it runs `QueryContextMenu` as a single COM
+  call that walks every registered extension in series, so one
+  slow extension still costs everyone behind it until the call
+  returns (the JS side just stops waiting for the output).
+  Proper fix: per-CLSID enumeration inside `tools/shellhelp.cpp`
+  — instantiate each `IShellExtInit` on a worker thread, deadline
+  each one at 1 s, stream JSON to stdout as each completes so JS
+  can render extensions progressively. Add an optional skip-list
+  in `neutralino.config.json` honored by the helper for known-bad
+  CLSIDs. ~300 LOC of C++ + CI rebuild; needs a Windows box with
+  several heavy extensions installed for verification, hence not
+  shipped here.
+- **Test coverage is shallow.** `npm test` (node:test) now covers
+  `fs.js`'s pure path / format helpers (`normalizePath`,
+  `sameDrive`, `joinPath`, `parentPath`, `basename`, `pathSegments`,
+  `parseUriList`, `formatSize`, `formatModified`); everything
+  Neutralino-bound and every UI module is still untested. Next
+  targets: `transfer.uniqueName` via a `pathExists` mock, and
+  `tree.js`'s `walk` / `renderWindow` math against a hand-built
+  `visibleNodes` fixture.

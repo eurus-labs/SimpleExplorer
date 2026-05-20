@@ -171,7 +171,7 @@ Run them before declaring a task complete.
 
 ```bash
 # JS lint    (not yet wired — when added, likely eslint or biome)
-# JS test    (not yet wired — vitest or node:test, run from src/)
+npm test    # node:test over tests/*.test.js (currently covers fs.js pure helpers)
 # Helper rebuild (only when tools/*.cpp changes; see tools/build.md)
 ```
 

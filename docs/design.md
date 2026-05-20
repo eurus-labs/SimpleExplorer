@@ -50,7 +50,9 @@ src/                      frontend, no build step
   ├── fs.js               Neutralino-FS adapter + mock fallback + path helpers
   ├── icons.js            inline SVG icons (lifted from design bundle)
   ├── sidebar-data.js     static sidebar + rail item lists
-  ├── styles.css          all CSS; per-direction themed via [data-direction] / [data-theme]
+  ├── styles-core.css     shared engine + overlays; cross-direction selectors
+  ├── styles-fluent.css   Direction A — Fluent (.a-* + [data-direction="fluent"])
+  ├── styles-cmd.css      Direction B — Cmd     (.b-* + [data-direction="cmd"])
   └── directions/
         ├── fluent.js     A · Fluent Refined (Win11 Mica chrome)
         └── cmd.js        B · Command-bar first (Linear/Arc inspired)
@@ -179,7 +181,8 @@ When tweaking visuals, port from those files.
 - **No React/JSX, no UI framework.** Vanilla DOM updates are fast enough for
   a file list and keep the surface area small.
 - **CSS variables for theming.** Every direction defines a palette block in
-  `styles.css` keyed on `[data-direction][data-theme]`. Components reference
+  its own file (`styles-fluent.css` / `styles-cmd.css`) keyed on
+  `[data-direction][data-theme]`. Components reference
   `var(--bg)`, `var(--text)`, `var(--accent)`, etc. — never hard-code colors.
 - **One module per direction.** Chrome differences live in
   `src/directions/<name>.js`. Shared row/pane logic lives in `src/pane.js`.
