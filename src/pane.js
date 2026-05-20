@@ -120,6 +120,39 @@ export async function tabClose(pane, idx) {
   return true;
 }
 
+// Detach a tab from `pane` and return it for re-attachment elsewhere.
+// Refuses when the pane has only one tab — the source must never be
+// left empty (matches the existing tabClose policy). Mirrors tabClose's
+// active-tab fix-up logic so the source pane lands on a sensible
+// neighbor after the move.
+export function tabDetach(pane, idx) {
+  if (pane.tabs.length <= 1) return null;
+  if (idx < 0 || idx >= pane.tabs.length) return null;
+  syncActiveTab(pane);
+  const tab = pane.tabs[idx];
+  const wasActive = idx === pane.activeTabIdx;
+  pane.tabs.splice(idx, 1);
+  if (pane.activeTabIdx >= pane.tabs.length) pane.activeTabIdx = pane.tabs.length - 1;
+  else if (idx < pane.activeTabIdx) pane.activeTabIdx -= 1;
+  if (wasActive) hydrateFromTab(pane, pane.tabs[pane.activeTabIdx]);
+  return tab;
+}
+
+// Attach a previously-detached tab to `pane` at `atIdx` (or end when
+// omitted). The attached tab becomes the active tab so the user's
+// focus follows the drag — matches Chrome / VS Code / Firefox cross-
+// tab-bar drop behavior. Lazy-loads entries if the dropped tab has
+// no entries cached.
+export async function tabAttach(pane, tab, atIdx) {
+  if (!tab) return;
+  const insertAt = (atIdx == null || atIdx > pane.tabs.length) ? pane.tabs.length : Math.max(0, atIdx);
+  syncActiveTab(pane);
+  pane.tabs.splice(insertAt, 0, tab);
+  pane.activeTabIdx = insertAt;
+  hydrateFromTab(pane, tab);
+  if (!tab.entries.length) await loadPath(pane, pane.path);
+}
+
 export async function loadPath(state, path) {
   // Cancel any in-flight lazy stat-fill from the previous navigation
   // so its onProgress callbacks don't leak past this load and stomp

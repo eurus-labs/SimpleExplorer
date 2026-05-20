@@ -3,7 +3,7 @@
 // that paints the chrome around the panes.
 
 import * as fs from './fs.js';
-import { createPaneState, navigate, goBack, goForward, goUp, loadPath, tabNew, tabClose, tabSwitch, tabSnapshot, sortedEntries, selectAll, moveSelectionByDelta, moveSelectionToBoundary } from './pane.js';
+import { createPaneState, navigate, goBack, goForward, goUp, loadPath, tabNew, tabClose, tabSwitch, tabSnapshot, tabDetach, tabAttach, sortedEntries, selectAll, moveSelectionByDelta, moveSelectionToBoundary } from './pane.js';
 import { renderFluent, statusBar as fluentStatusBar } from './directions/fluent.js';
 import { renderCmd } from './directions/cmd.js';
 import { LAYOUT_DEFS, DEFAULT_SPLITS } from './layout.js';
@@ -240,6 +240,18 @@ function render() {
     onTabNew: async (i) => { await tabNew(panes[i], panes[i].path); saveTabs(); render(); },
     onTabClose: async (i, tabIdx) => { if (await tabClose(panes[i], tabIdx)) { saveTabs(); render(); } },
     onTabSwitch: async (i, tabIdx) => { await tabSwitch(panes[i], tabIdx); saveTabs(); render(); },
+    onTabMove: async (srcIdx, srcTabIdx, dstIdx, dstTabIdx) => {
+      // Same-pane drop is short-circuited inside fluent.js before
+      // dispatch, but guard here too so callers can rely on the move
+      // being well-defined for any input.
+      if (srcIdx === dstIdx) return;
+      const tab = tabDetach(panes[srcIdx], srcTabIdx);
+      if (!tab) return;
+      await tabAttach(panes[dstIdx], tab, dstTabIdx);
+      activePane = dstIdx;
+      saveTabs();
+      render();
+    },
     onSortChange: (i, sort) => { panes[i].sort = sort; saveTabs(); render(); },
     onViewChange: (i, view) => { panes[i].view = view; saveTabs(); render(); },
     cmdRailOpen: settings.cmdRailOpen ?? null,
