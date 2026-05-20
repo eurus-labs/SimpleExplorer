@@ -541,6 +541,19 @@ export async function openInVSCode(path) {
   await execBg(`code "${path}"`);
 }
 
+// Spawning a console shell from a GUI parent (which is what Neutralino
+// runs us as) inherits the parent's invisible-console state, so a bare
+// `cmd /K …` child has no window to draw into. Wrapping with `cmd /c
+// start "" …` runs cmd's built-in start command, which detaches the
+// target with CREATE_NEW_CONSOLE so a visible window appears. The empty
+// "" is the required window-title placeholder; without it, `start`
+// interprets the next quoted argument (the path) as the title and
+// silently does nothing. Only the wt-missing fallback paths need this;
+// wt.exe is a GUI app and creates its own window.
+function startDetached(cmd) {
+  return execBg(`cmd /c start "" ${cmd}`);
+}
+
 export async function openInTerminal(path) {
   if (!N) { console.warn('[mock] wt', path); return; }
   // Prefer Windows Terminal; cmd.exe is the universal fallback.
@@ -548,7 +561,7 @@ export async function openInTerminal(path) {
   if (r.exitCode === 0 && r.stdOut.trim()) {
     await execBg(`wt.exe -d "${path}"`);
   } else {
-    await execBg(`cmd /K cd /D "${path}"`);
+    await startDetached(`cmd /K cd /D "${path}"`);
   }
 }
 
@@ -563,18 +576,17 @@ export async function openInPowerShell(path) {
   if (r.exitCode === 0 && r.stdOut.trim()) {
     await execBg(`wt.exe -d "${path}" powershell.exe -NoExit`);
   } else {
-    await execBg(`powershell.exe -NoExit -Command "Set-Location -LiteralPath '${path.replace(/'/g, "''")}'"`);
+    await startDetached(`powershell.exe -NoExit -Command "Set-Location -LiteralPath '${path.replace(/'/g, "''")}'"`);
   }
 }
 
 export async function openInCmd(path) {
   if (!N) { console.warn('[mock] cmd', path); return; }
-  // Bare cmd.exe at `path`. The Windows-Terminal-hosted path is
-  // identical to openInTerminal's fallback, so we just call it
-  // directly with no wt detection — keeps the user's intent explicit
-  // ("I asked for cmd, give me cmd") instead of silently upgrading
-  // to wt.
-  await execBg(`cmd /K cd /D "${path}"`);
+  // Bare cmd.exe at `path`. Always wraps via `start ""` so a fresh
+  // console window appears; without it Neutralino spawns cmd as a
+  // child of the GUI process and the new shell has nowhere to draw.
+  // No wt detection here by design — "I asked for cmd, give me cmd".
+  await startDetached(`cmd /K cd /D "${path}"`);
 }
 
 export async function openInBash(path) {
@@ -597,7 +609,10 @@ export async function openInBash(path) {
   if (wt.exitCode === 0 && wt.stdOut.trim()) {
     await execBg(`wt.exe -d "${path}" "${bashPath}" --login -i -c "cd \\"${escaped}\\"; exec bash"`);
   } else {
-    await execBg(`"${bashPath}" --login -i -c "cd \\"${escaped}\\"; exec bash"`);
+    // Without wt, bash.exe still needs its own console — same hazard as
+    // bare cmd. Use start so mintty (Git Bash's terminal) is launched
+    // detached with a window.
+    await startDetached(`"${bashPath}" --login -i -c "cd \\"${escaped}\\"; exec bash"`);
   }
 }
 
