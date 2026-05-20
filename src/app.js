@@ -11,6 +11,7 @@ import { openPalette, isPaletteOpen } from './palette.js';
 import { recursiveSearch } from './search.js';
 import { ensurePreviewPanel, bindPreviewClose, showPreviewFor } from './preview.js';
 import { runTransfer } from './transfer.js';
+import * as modal from './modal.js';
 
 // Boot the Neutralino client. Safe to call before DOM ready; APIs queue until
 // the runtime handshake completes. No-op when running directly in a browser
@@ -118,6 +119,20 @@ async function init() {
 function quickAccessPath(name) {
   const sep = homePath.includes('\\') ? '\\' : '/';
   return homePath + sep + name;
+}
+
+// `New folder`, `New folder (2)`, `New folder (3)`, … — first free
+// candidate against the case-insensitive existing-names set. Matches
+// stock Explorer's behavior when creating a folder via the
+// command-bar button.
+function suggestNewFolderName(existing) {
+  const base = 'New folder';
+  if (!existing.has(base.toLowerCase())) return base;
+  for (let n = 2; n < 1000; n++) {
+    const candidate = `${base} (${n})`;
+    if (!existing.has(candidate.toLowerCase())) return candidate;
+  }
+  return base;
 }
 
 function railTarget(key) {
@@ -423,9 +438,23 @@ async function doAction(action) {
   const pane = panes[activePane];
   switch (action) {
     case 'newfolder': {
-      const name = prompt('New folder name:');
+      const existing = new Set(pane.entries.map((e) => e.name.toLowerCase()));
+      const name = await modal.prompt({
+        title: 'New folder',
+        label: 'Name',
+        value: suggestNewFolderName(existing),
+        okText: 'Create',
+        validate: (v) => {
+          const trimmed = (v || '').trim();
+          if (!trimmed) return 'Name is required.';
+          if (/[<>:"/\\|?*]/.test(trimmed)) return 'Name contains invalid characters.';
+          if (trimmed === '.' || trimmed === '..') return 'Reserved name.';
+          if (existing.has(trimmed.toLowerCase())) return 'A file or folder with this name already exists.';
+          return null;
+        },
+      });
       if (!name) return;
-      await fs.makeDir(fs.joinPath(pane.path, name));
+      await fs.makeDir(fs.joinPath(pane.path, name.trim()));
       await safeLoad(pane);
       render();
       break;
@@ -441,8 +470,15 @@ async function doAction(action) {
     }
     case 'delete': {
       if (!pane.selected.size) return;
-      if (!confirm(`Move ${pane.selected.size} item(s) to Recycle Bin?`)) return;
-      for (const name of pane.selected) {
+      const items = [...pane.selected];
+      const ok = await modal.confirm({
+        title: items.length === 1 ? 'Move to Recycle Bin' : `Move ${items.length} items to Recycle Bin`,
+        body: 'These items will be sent to the Recycle Bin. You can restore them from there.',
+        items,
+        okText: 'Move to Recycle Bin',
+      });
+      if (!ok) return;
+      for (const name of items) {
         await fs.deleteToTrash(fs.joinPath(pane.path, name));
       }
       await safeLoad(pane);
@@ -536,8 +572,16 @@ async function doAction(action) {
     }
     case 'deletePerm': {
       if (!pane.selected.size) return;
-      if (!confirm(`Permanently delete ${pane.selected.size} item(s)? This cannot be undone.`)) return;
-      for (const name of pane.selected) {
+      const items = [...pane.selected];
+      const ok = await modal.confirm({
+        title: items.length === 1 ? 'Permanently delete' : `Permanently delete ${items.length} items`,
+        body: 'This cannot be undone. The Recycle Bin is bypassed.',
+        items,
+        danger: true,
+        okText: 'Delete',
+      });
+      if (!ok) return;
+      for (const name of items) {
         await fs.deletePermanent(fs.joinPath(pane.path, name));
       }
       await safeLoad(pane);

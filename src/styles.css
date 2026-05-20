@@ -985,3 +985,82 @@ body.is-resizing-col .row, body.is-resizing-row .row { pointer-events: none; }
   border-color: transparent; font-weight: 600;
 }
 .conflict-modal__btn--primary:hover { background: var(--accent-bg); filter: brightness(0.95); }
+
+/* Phase 8e — generic in-app modal primitive. Used by modal.prompt /
+   modal.confirm / modal.choose. Sits on document.body so the
+   render() cycle that wipes #root doesn't blow it away. The
+   conflict-modal styles above predate this primitive and stay
+   bespoke; a follow-up can collapse them onto these classes. */
+.app-modal__overlay {
+  position: fixed; inset: 0; z-index: 9500;
+  display: flex; align-items: center; justify-content: center;
+  background: rgba(0, 0, 0, 0.35);
+}
+.app-modal {
+  min-width: 380px; max-width: 520px;
+  background: var(--surface); color: var(--text);
+  border: 1px solid var(--border); border-radius: 8px;
+  box-shadow: 0 16px 48px rgba(0,0,0,.28);
+  display: flex; flex-direction: column;
+}
+.app-modal--danger { border-color: color-mix(in srgb, #c42b1c 50%, var(--border)); }
+.app-modal__header {
+  padding: 14px 18px 10px;
+  font-size: 14px; font-weight: 600;
+}
+.app-modal__body {
+  padding: 0 18px 12px;
+  font-size: 13px;
+  display: flex; flex-direction: column; gap: 6px;
+}
+.app-modal__body-text { color: var(--text-mute); line-height: 1.4; }
+.app-modal__label { font-size: 12px; color: var(--text-mute); }
+.app-modal__input {
+  width: 100%; height: 30px;
+  padding: 0 8px;
+  background: var(--surface2); color: var(--text);
+  border: 1px solid var(--border); border-radius: 5px;
+  font: inherit;
+  outline: none;
+}
+.app-modal__input:focus { border-color: var(--accent); }
+.app-modal__error {
+  min-height: 16px;
+  font-size: 11px; color: #c42b1c;
+}
+.app-modal__items {
+  margin: 4px 0 0; padding: 8px 10px;
+  list-style: none;
+  max-height: 140px; overflow: auto;
+  background: var(--surface2);
+  border: 1px solid var(--border-soft); border-radius: 5px;
+  font-size: 12px;
+}
+.app-modal__items li {
+  padding: 2px 0;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.app-modal__items-more { color: var(--text-dim); font-style: italic; }
+.app-modal__footer {
+  display: flex; justify-content: flex-end; gap: 6px;
+  padding: 10px 18px 14px;
+}
+.app-modal__btn {
+  padding: 6px 12px;
+  background: var(--surface); color: var(--text);
+  border: 1px solid var(--border); border-radius: 5px;
+  cursor: pointer; font-size: 12.5px;
+}
+.app-modal__btn:hover { background: var(--hover); }
+.app-modal__btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+.app-modal__btn:disabled { opacity: 0.5; cursor: not-allowed; }
+.app-modal__btn--primary {
+  background: var(--accent-bg); color: var(--accent);
+  border-color: transparent; font-weight: 600;
+}
+.app-modal__btn--primary:hover { background: var(--accent-bg); filter: brightness(0.95); }
+.app-modal__btn--danger {
+  background: #c42b1c; color: #fff;
+  border-color: transparent; font-weight: 600;
+}
+.app-modal__btn--danger:hover { background: #a02212; }

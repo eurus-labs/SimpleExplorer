@@ -6,14 +6,12 @@ in [`../CLAUDE.md`](../CLAUDE.md). This file is the source of truth for
 **what's painted but not wired**, and **what hasn't been started**.
 
 Status: post-MVP, pre-v1. Phases 1, 1.5, 2, 3, 4, 5, 6a, 6b, 7, 8a,
-8c, 8d have shipped. **Phase 8b (embedded PTY terminal via ConPTY
-+ xterm.js) was reverted** — see the dedicated section below — and
-replaced with three external-launcher actions (Open in Terminal /
-PowerShell / Cmd) that spawn at the active pane's path. The
-Workspace direction has been removed; the remaining directions are
-Fluent (A) and Cmd (B). Remaining Phase 8 work:
-**8e** in-app dialogs to replace the native `prompt()` /
-`confirm()` that breaks the Mica chrome. After that,
+8c, 8d, 8e have shipped — **Phase 8 is complete except for the
+reverted 8b**. The PTY terminal was replaced with three external-
+launcher actions (Open in Terminal / PowerShell / Cmd) that spawn
+at the active pane's path. The Workspace direction has been
+removed; the remaining directions are Fluent (A) and Cmd (B).
+Next up:
 **Phase 9 Crew (Copilot CLI) integration** (shell out to the
 `crew` binary so users can ask natural-language questions about
 the file they're looking at), plus the items in [Open questions
@@ -926,53 +924,55 @@ default Ctrl+A / arrow / Home / End behavior runs there.
 Out of scope (as planned): rubber-band select (drag-to-select
 rectangle) — bigger UX change, separate phase.
 
-#### 8e — In-app dialogs for command-bar buttons (~1.5 days)
+#### ~~8e — In-app dialogs for command-bar buttons~~ (shipped)
 
-The command bar's New / Copy / Rename / Delete / Compare /
-"Drag out…" actions currently route through `prompt()` and
-`confirm()` -- the WebView2 native dialogs. They show as
-`127.0.0.1:58681 says…` chrome that breaks the Mica frameless
-look completely (see Phase 7a's design intent), can't be themed,
-and lock the entire app while open. Replace with in-app modals
-that match the chrome.
+`src/modal.js` (new) exports three Promise-returning primitives:
 
-- **`src/modal.js` (new):** small overlay primitive --
-  `prompt({ title, label, value, validate })`,
-  `confirm({ title, body, danger })`, and `choose({ title, body,
-  options })` for multi-button cases. Returns Promises so callers
-  stay async-await-shaped. Single-instance (re-opening tears down
-  the previous overlay), Esc cancels, Enter submits, click-outside
-  cancels (or doesn't, when `danger: true`).
-- **Wire each command-bar action through it.** `app.js` doAction
-  cases swap their `prompt()` / `confirm()` for the new
-  primitive. The `New folder` action gets validation against
-  invalid Win32 chars (`<>:"/\\|?*`), already-exists collision
-  check, and a default-suggested name (`New folder`,
-  `New folder (2)`, …) that's pre-selected so Enter accepts.
-- **Trash confirm copy.** Today's `Move N item(s) to Recycle
-  Bin?` becomes a styled modal with the items listed (capped at 5
-  + "and N more"), a Recycle Bin icon, and a destructive accent
-  on the OK button. Same shape for Permanently delete (Shift+Del).
-- **Rename inline already exists** (Phase 6a's F2 inline editor)
-  -- this phase doesn't change row-level rename. The command-bar
-  Rename button still walks through the modal because the user
-  may have multi-select; for single selection it could fall
-  through to the inline editor (decide during implementation).
-- **Style:** matches `.popover` / `.search-banner` -- 1 px
-  border, 6 px radius, soft drop shadow, body in `var(--surface)`.
-  Header has the title; body has the prompt + input; footer has
-  Cancel + primary button right-aligned. Min width 360 px.
-- **Visual button polish (drive-by).** While we're touching the
-  cmd-bar buttons, the `.cmdbtn` style is currently flat-text;
-  give it the same hover treatment as `.iconbtn`, swap the
-  emoji-ish glyphs in `Copy` / `Rename` for properly-aligned
-  iconHTML calls (most already use icons but `Compare` and
-  `Delete` slightly drift). Same height (28 px), same accent on
-  hover.
-- Out of scope: a full settings / preferences pane (parked for a
-  later polish pass); toast notifications for action results
-  (success / failure feedback) -- just keep the existing console
-  warns for v1.
+- `prompt({ title, label, value, placeholder, validate, okText })`
+  → `string | null`. Selects the basename (skipping extension) on
+  focus so Enter accepts. `validate(value)` runs on every input
+  event; when it returns a string the OK button disables and the
+  message renders below the input. Used by **New folder**, with
+  validation for invalid Win32 chars (`<>:"/\|?*`), reserved names
+  (`.`, `..`), and case-insensitive collision against the pane's
+  current entries. A new `suggestNewFolderName(existing)` helper
+  computes the first free `New folder`, `New folder (2)`, …
+  candidate so the user can just press Enter.
+- `confirm({ title, body, items, danger, okText, cancelText })`
+  → `boolean`. Renders `items` (capped at 5 + "…and N more") inside
+  a scrollable list inset on `--surface2`. Used by the **Recycle
+  Bin** action and the **Shift+Del permanent-delete** action; the
+  latter sets `danger: true`, which paints the OK button red,
+  focuses Cancel by default, removes the click-outside escape
+  hatch, and tints the modal border.
+- `choose({ title, body, options })` → `value | null`. Future-
+  facing primitive for the conflict modal and Rename multi flow;
+  not used yet (the 8c conflict modal stays bespoke for now to
+  keep this PR's diff minimal).
+
+Single-instance: opening a second modal calls `teardown` on the
+first. Esc cancels. Enter submits the primary action (the input
+on prompt, OK on confirm, the `primary: true` option on choose).
+A captured-phase `keydown` listener handles those keys so they
+don't fall through to `bindGlobalKeys` (Ctrl+A inside the prompt
+input still picks text, not pane rows).
+
+The three remaining `window.prompt` / `window.confirm` call sites
+in `src/app.js` (`newfolder`, `delete`, `deletePerm`) are gone —
+replaced with the matching `modal.*` calls. No other call sites
+existed; Rename uses the F2 inline editor from Phase 6a, Copy /
+Move go straight to `runTransfer`, Compare and dragOut don't
+prompt.
+
+CSS lives at the bottom of `src/styles.css` under `.app-modal*`.
+The Phase 8c `.conflict-modal` styles predate this primitive and
+stay bespoke; a follow-up can collapse them onto these classes.
+
+Out of scope (as planned): a full settings / preferences pane;
+toast notifications for action results (kept as the existing
+`console.warn` for v1); the `.cmdbtn` hover-polish drive-by —
+the current style already matches `.iconbtn` after Phase 6a, so
+no work was needed.
 
 ### Phase 9 — Crew (Copilot CLI) integration
 
