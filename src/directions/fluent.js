@@ -232,6 +232,13 @@ function paneCard(ctx, pane, i) {
   return card;
 }
 
+// Custom MIME type for cross-pane tab drags. Lets dragover ignore
+// foreign payloads (Explorer files, internal row drags from pane.js)
+// without inspecting their dataTransfer.types contents. Same idea as
+// the DND_TYPE in pane.js but separate so a tab drag never collides
+// with a row drag mid-flight.
+const TAB_DND_TYPE = 'application/x-simpleexplorer-tab';
+
 function tabBar(ctx, pane, paneIdx) {
   const bar = el('div', 'a-tabs');
   pane.tabs.forEach((tab, tabIdx) => {
@@ -251,7 +258,20 @@ function tabBar(ctx, pane, paneIdx) {
       e.stopPropagation();
       ctx.onTabClose(paneIdx, tabIdx);
     });
+    // Cross-pane tab drag. Only enabled when this pane has more than
+    // one tab — moving the only tab would leave the source empty,
+    // which the close-last-tab policy already forbids.
     if (pane.tabs.length > 1) {
+      tabEl.draggable = true;
+      tabEl.addEventListener('dragstart', (e) => {
+        e.stopPropagation();
+        e.dataTransfer.effectAllowed = 'move';
+        e.dataTransfer.setData(TAB_DND_TYPE, JSON.stringify({ paneIdx, tabIdx }));
+        tabEl.classList.add('a-tab--dragging');
+      });
+      tabEl.addEventListener('dragend', () => {
+        tabEl.classList.remove('a-tab--dragging');
+      });
       const close = el('span', 'a-tab__close');
       close.innerHTML = iconHTML('close', 11);
       close.title = 'Close tab';
@@ -272,7 +292,57 @@ function tabBar(ctx, pane, paneIdx) {
     ctx.onTabNew(paneIdx);
   });
   bar.appendChild(plus);
+
+  // Drop target: another pane's tab bar receives a tab drag. dragenter
+  // and dragover must both call preventDefault so the drop actually
+  // fires; that's the standard HTML5-DnD gotcha. We use a depth counter
+  // because entering a child element fires `dragleave` on the bar even
+  // though the cursor is still inside, which would flicker the accent
+  // ring otherwise.
+  let dragDepth = 0;
+  bar.addEventListener('dragenter', (e) => {
+    if (!hasTabType(e.dataTransfer)) return;
+    e.preventDefault();
+    dragDepth += 1;
+    bar.classList.add('a-tabs--drop');
+  });
+  bar.addEventListener('dragover', (e) => {
+    if (!hasTabType(e.dataTransfer)) return;
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+  });
+  bar.addEventListener('dragleave', () => {
+    dragDepth = Math.max(0, dragDepth - 1);
+    if (dragDepth === 0) bar.classList.remove('a-tabs--drop');
+  });
+  bar.addEventListener('drop', (e) => {
+    dragDepth = 0;
+    bar.classList.remove('a-tabs--drop');
+    const raw = e.dataTransfer.getData(TAB_DND_TYPE);
+    if (!raw) return;
+    e.preventDefault();
+    let payload;
+    try { payload = JSON.parse(raw); } catch { return; }
+    if (payload.paneIdx === paneIdx) return; // same-pane drop is a no-op (no reorder in v1)
+    // Compute insertion index from cursor position relative to existing
+    // tab elements. Drop before the tab whose horizontal midpoint is
+    // right of the pointer; falls through to end-of-list when no tab
+    // matches (cursor is past the rightmost tab).
+    const tabEls = Array.from(bar.querySelectorAll('.a-tab'));
+    let insertAt = tabEls.length;
+    for (let i = 0; i < tabEls.length; i++) {
+      const r = tabEls[i].getBoundingClientRect();
+      if (e.clientX < r.left + r.width / 2) { insertAt = i; break; }
+    }
+    ctx.onTabMove(payload.paneIdx, payload.tabIdx, paneIdx, insertAt);
+  });
   return bar;
+}
+
+function hasTabType(dt) {
+  // dataTransfer.types is a DOMStringList during dragenter / dragover;
+  // .includes() works on Array.from + Firefox's older list shape alike.
+  return Array.from(dt?.types || []).includes(TAB_DND_TYPE);
 }
 
 export function statusBar(ctx) {
