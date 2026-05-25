@@ -146,6 +146,26 @@ static void json_print_str(const wchar_t* w) {
     free(u);
 }
 
+// A hidden message-only window the verb invocations can use as a
+// parent HWND. Several shell verbs (Pin / Unpin to Quick access on
+// Win10/11, Compress / "Send to" submenus when they want a status
+// dialog, anything that calls IsWindow on the supplied hwnd) silently
+// bail when ici.hwnd is NULL — the user clicks the menu entry and
+// nothing happens. A message-only window stays invisible (no taskbar
+// entry, no draw) while still satisfying COM's "I need a real parent"
+// check. Created lazily on first use; the OS reclaims it on process
+// exit so there's no explicit DestroyWindow path.
+static HWND get_invoke_hwnd() {
+    static HWND s_hwnd = NULL;
+    if (!s_hwnd) {
+        s_hwnd = CreateWindowExW(0, L"STATIC", L"", 0,
+                                 0, 0, 0, 0,
+                                 HWND_MESSAGE, NULL,
+                                 GetModuleHandleW(NULL), NULL);
+    }
+    return s_hwnd;
+}
+
 // Build an IContextMenu over <n> sibling paths (must share one parent
 // folder, which is how Explorer's multi-select works). Hands back the
 // parent IShellFolder so callers can release it after the menu is done.
@@ -194,7 +214,9 @@ static HRESULT build_context_menu(int n, wchar_t** paths,
     }
 
     IContextMenu* cm = NULL;
-    hr = parent->GetUIObjectOf(NULL, count, (PCUITEMID_CHILD_ARRAY)children,
+    // Pass the message-only hwnd so any verb that captures its parent
+    // window during IContextMenu initialization gets a usable handle.
+    hr = parent->GetUIObjectOf(get_invoke_hwnd(), count, (PCUITEMID_CHILD_ARRAY)children,
                                IID_IContextMenu, NULL, (void**)&cm);
 
     // PIDLs were absolute; SHBindToParent's child pointers are interior to
@@ -339,8 +361,12 @@ static int verb_invoke(int argc, wchar_t** argv) {
                          CMF_NORMAL | CMF_EXTENDEDVERBS);
 
     CMINVOKECOMMANDINFOEX ici = { sizeof(ici) };
-    ici.fMask = CMIC_MASK_UNICODE;
-    ici.hwnd = NULL;
+    // CMIC_MASK_UNICODE  -> shell reads the lpVerbW field.
+    // CMIC_MASK_FLAG_LOG_USAGE  -> verbs that update MRU lists
+    //   (e.g. Pin to Quick access maintains a pinned-folders list) get
+    //   their bookkeeping done. Without it some verbs no-op silently.
+    ici.fMask = CMIC_MASK_UNICODE | CMIC_MASK_FLAG_LOG_USAGE;
+    ici.hwnd = get_invoke_hwnd();
     ici.lpVerb  = MAKEINTRESOURCEA(id);
     ici.lpVerbW = MAKEINTRESOURCEW(id);
     ici.nShow = SW_SHOWNORMAL;
