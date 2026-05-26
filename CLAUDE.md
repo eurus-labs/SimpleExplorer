@@ -58,6 +58,12 @@ the tiebreaker.
 - **Never push a branch whose merge-base lags `origin/dev`.** Rebase
   first.
 - **Never amend a published commit.** Always create a new commit.
+- **Never open a pull request without explicit user authorization.**
+  Push the branch, summarize what's on it ("branch is at `<name>`,
+  N commits, X tests pass"), and ask whether to open a PR before
+  calling `mcp__github__create_pull_request`. The user often
+  prefers to review the branch locally or batch several branches
+  into one PR — pre-emptive PR creation clutters the queue.
 
 ### ALWAYS
 
