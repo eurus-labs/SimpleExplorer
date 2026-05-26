@@ -208,17 +208,17 @@ async function runHelper(...args) {
 // Walks the Windows shell context menu via the helper exe's `menu` verb.
 // Returns null when the helper isn't built yet (mock mode or pre-compile),
 // so the caller can fall back to a curated static menu.
-// 1500 ms is the budget the Phase 1.5 spec set for shell-extension
-// menu paint ("< 1 s worst case"). When a registered extension does
-// I/O or RPC during QueryContextMenu, the whole helper call can stall
-// for several seconds and the right-click menu sits half-rendered the
-// whole time. The deadline below resolves with a TIMEOUT sentinel so
-// the caller can render the curated section + a "[shell extensions
-// timed out]" notice instead of hanging on the helper. The proper
-// fix (per-CLSID enumeration on a worker thread inside the C++
-// helper) is tracked as debt — see Open questions / debt in
-// docs/roadmap.md.
-const HELPER_MENU_DEADLINE_MS = 1500;
+// Originally 1500 ms (Phase 1.5 spec's "< 1 s worst case"), but on
+// real-world Windows boxes with several shell extensions installed
+// (TortoiseSVN / 7-Zip / Bosch File Services / IntelliJ / FastSearch
+// / Send to + Print to + Cast to + …) the IContextMenu walk
+// frequently takes 2–4 s even when no individual extension is
+// stalling — Explorer's own context menu paints just as slowly the
+// first time. 5 s gives those a real chance to complete before the
+// JS bails. The proper fix (per-CLSID worker thread inside the
+// helper, streaming JSON to stdout) stays as debt; see Open
+// questions / debt in docs/roadmap.md.
+const HELPER_MENU_DEADLINE_MS = 5000;
 export const HELPER_MENU_TIMEOUT = Symbol('helperMenuTimeout');
 
 export async function helperMenu(paths) {
