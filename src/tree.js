@@ -194,14 +194,10 @@ function makeRow(node, idx) {
     e.stopPropagation();
     toggle(entry);
   });
-  // Single-click on the row body toggles expand (cheap, exploratory
-  // gesture — lets the user look around without committing the active
-  // pane to a new folder). Double-click navigates. Matches the user
-  // ask "we need to double-click to change the folder" while keeping
-  // the row clickable for expand so the tiny chevron isn't the only
-  // way to walk the tree.
-  row.addEventListener('click', () => toggle(entry));
-  row.addEventListener('dblclick', () => instance?.onNavigate?.(entry.path));
+  row.addEventListener('click', () => {
+    instance?.onNavigate?.(entry.path);
+  });
+  row.addEventListener('dblclick', () => toggle(entry));
 
   return row;
 }
