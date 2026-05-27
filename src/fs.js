@@ -361,6 +361,12 @@ export async function listDir(path, opts = {}) {
     if (a.is_dir !== b.is_dir) return a.is_dir ? -1 : 1;
     return a.name.localeCompare(b.name, undefined, { sensitivity: 'base' });
   });
+  // namesOnly is the tree's path: skip every getStats round-trip
+  // because the tree renders only name + is_dir, not size / modified.
+  // For C:\ with ~30 root entries this drops 30 IPC trips (a few
+  // hundred ms on cold cache) to zero — tree expansion paints
+  // immediately. Pane rows still take the full path below.
+  if (opts.namesOnly) return out;
   if (out.length <= EAGER_STAT_THRESHOLD) {
     await Promise.all(out.map((it) => fillStat(it)));
     return out;

@@ -194,14 +194,10 @@ function makeRow(node, idx) {
     e.stopPropagation();
     toggle(entry);
   });
-  // Single-click on the row body toggles expand (cheap, exploratory
-  // gesture — lets the user look around without committing the active
-  // pane to a new folder). Double-click navigates. Matches the user
-  // ask "we need to double-click to change the folder" while keeping
-  // the row clickable for expand so the tiny chevron isn't the only
-  // way to walk the tree.
-  row.addEventListener('click', () => toggle(entry));
-  row.addEventListener('dblclick', () => instance?.onNavigate?.(entry.path));
+  row.addEventListener('click', () => {
+    instance?.onNavigate?.(entry.path);
+  });
+  row.addEventListener('dblclick', () => toggle(entry));
 
   return row;
 }
@@ -219,13 +215,11 @@ async function fetchChildren(entry) {
   if (cached?.loaded || cached?.loading) return;
   nodeCache.set(norm, { children: null, loading: true, loaded: false });
   let listed = [];
-  // Tree doesn't render size / modified, so the async stat fill that
-  // fs.listDir kicks off for big directories is wasted work for us —
-  // but the entries we read here are already correctly typed (is_dir
-  // comes from readDirectory). The stat fill mutates an array we
-  // immediately re-shape into name+path-only dir objects, so the
-  // wasted writes vanish into an unreferenced array on the next GC.
-  try { listed = await fs.listDir(entry.path); }
+  // Tree renders only name + is_dir; namesOnly skips fs.listDir's
+  // per-entry getStats round-trips entirely. On C:\ with ~30 root
+  // entries this is the difference between ~50 ms and ~500 ms before
+  // the "Loading…" placeholder swaps to children.
+  try { listed = await fs.listDir(entry.path, { namesOnly: true }); }
   catch { listed = []; }
   const dirs = listed.filter((e) => e.is_dir).map((e) => ({
     name: e.name, path: e.path, is_dir: true,
