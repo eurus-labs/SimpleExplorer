@@ -214,9 +214,16 @@ static HRESULT build_context_menu(int n, wchar_t** paths,
     }
 
     IContextMenu* cm = NULL;
-    // Pass the message-only hwnd so any verb that captures its parent
-    // window during IContextMenu initialization gets a usable handle.
-    hr = parent->GetUIObjectOf(get_invoke_hwnd(), count, (PCUITEMID_CHILD_ARRAY)children,
+    // hwndOwner is NULL on purpose: when GetUIObjectOf gets a real
+    // HWND, well-behaved shell extensions (TortoiseSVN, Bosch File
+    // Services, etc.) do extra initialization work — registering for
+    // window messages, prefetching icons, walking SCC status caches —
+    // that they skip when there's no parent. With many extensions
+    // installed the cumulative cost adds seconds to every menu paint.
+    // The HWND is only strictly required at InvokeCommand time (for
+    // verbs like Pin/Unpin to Quick access that gate on it), and
+    // verb_invoke supplies it there via get_invoke_hwnd().
+    hr = parent->GetUIObjectOf(NULL, count, (PCUITEMID_CHILD_ARRAY)children,
                                IID_IContextMenu, NULL, (void**)&cm);
 
     // PIDLs were absolute; SHBindToParent's child pointers are interior to
