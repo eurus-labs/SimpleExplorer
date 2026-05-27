@@ -783,7 +783,14 @@ const FOLDER_ITEMS = [
 // 3-second TTL cache so repeat right-clicks of the same selection don't
 // re-walk COM. Keyed by paths.join('\\0').
 const SHELL_MENU_CACHE = new Map();
-const SHELL_MENU_TTL_MS = 3000;
+// Cache successful menu loads for 30s — when the user dismisses the
+// right-click menu and reopens it on the same path (very common
+// pattern: open, scan, miss the verb, reopen), the second open is
+// instant instead of restalling on the multi-second IContextMenu
+// walk. 3 s wasn't long enough to cover the typical hesitation cycle.
+// Timeout sentinels also cache for this duration so a busy machine
+// doesn't keep blocking on a known-slow folder.
+const SHELL_MENU_TTL_MS = 30000;
 
 let openMenus = [];
 
