@@ -1,0 +1,41 @@
+name: ci
+
+# Runs on every pull request, so the required check always reports. The
+# shellhelp build stays in its own workflow, which only runs when the helper
+# changes.
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      # The tests use only node:test and the standard library: no install step.
+      - name: Unit tests
+        run: node --test tests/*.test.js
+
+  # The one check a branch ruleset should require. Add every new job to needs;
+  # the check name stays the same. always(): a skipped required check counts
+  # as passing, so this job must run and fail when anything above fails.
+  verify:
+    if: always()
+    needs: [test]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Every required job passed
+        env:
+          RESULTS: ${{ join(needs.*.result, ' ') }}
+        run: |
+          echo "results: $RESULTS"
+          for result in $RESULTS; do
+            [ "$result" = success ] || exit 1
+          done
